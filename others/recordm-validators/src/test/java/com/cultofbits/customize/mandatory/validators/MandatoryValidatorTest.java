@@ -11,7 +11,7 @@ import static com.cultofbits.customize.mandatory.validators.MandatoryValidator.K
 import static org.testng.AssertJUnit.assertEquals;
 import static org.testng.AssertJUnit.assertNull;
 
-public class MandatoryIfValidatorTest {
+public class MandatoryValidatorTest {
 
     private MandatoryValidator mandatoryIfValidator = new MandatoryValidator();
 
@@ -54,6 +54,9 @@ public class MandatoryIfValidatorTest {
     public void can_build_expressions() {
         assertNull(mandatoryIfValidator.buildExpressionIfMatching("$text"));
 
+        assertEquals(mandatoryIfValidator.buildExpressionIfMatching("$text $help $mandatory(akjbdf % akjfcb) teste"),
+                     new MandatoryValidator.Expr("akjbdf % akjfcb", null, null));
+
         assertEquals(mandatoryIfValidator.buildExpressionIfMatching("$text $help $mandatory teste"),
                      new MandatoryValidator.Expr());
 
@@ -63,8 +66,11 @@ public class MandatoryIfValidatorTest {
         assertEquals(mandatoryIfValidator.buildExpressionIfMatching("$text $help $mandatory(   )"),
                      new MandatoryValidator.Expr());
 
-        assertEquals(mandatoryIfValidator.buildExpressionIfMatching("$text $help $mandatory(field) teste"),
-                     new MandatoryValidator.Expr("field", null, null));
+        assertEquals(mandatoryIfValidator.buildExpressionIfMatching("$text $help $mandatory(field name) teste"),
+                     new MandatoryValidator.Expr("field name", null, null));
+
+        assertEquals(mandatoryIfValidator.buildExpressionIfMatching("$text $help $mandatory(field name = test) teste"),
+                     new MandatoryValidator.Expr("field name", "=", "test"));
 
         assertEquals(mandatoryIfValidator.buildExpressionIfMatching("$text $help $mandatory(field!) teste"),
                      new MandatoryValidator.Expr("field", "!", null));
@@ -72,4 +78,5 @@ public class MandatoryIfValidatorTest {
         assertEquals(mandatoryIfValidator.buildExpressionIfMatching("$text $help $mandatory(field=1) teste"),
                      new MandatoryValidator.Expr("field", "=", "1"));
     }
+
 }

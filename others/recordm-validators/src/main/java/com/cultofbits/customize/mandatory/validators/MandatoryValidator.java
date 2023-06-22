@@ -3,6 +3,7 @@ package com.cultofbits.customize.mandatory.validators;
 import com.cultofbits.recordm.core.model.Instance;
 import com.cultofbits.recordm.core.model.InstanceField;
 import com.cultofbits.recordm.customvalidators.api.AbstractOnCreateValidator;
+import com.cultofbits.recordm.customvalidators.api.ErrorType;
 import com.cultofbits.recordm.customvalidators.api.OnUpdateValidator;
 import com.cultofbits.recordm.customvalidators.api.ValidationError;
 
@@ -41,13 +42,10 @@ public class MandatoryValidator extends AbstractOnCreateValidator implements OnU
                     return null;
                 }
 
-                if (expr.fieldName == null && f.getValue() == null) {
-                    return custom(f, "mandatory");
-                }
-
-                InstanceField target = findTarget(f, expr.fieldName);
-                if (target.getValue() == null) {
-                    return null;
+                if ((expr.fieldName == null || expressionPass(expr, findTarget(f, expr.fieldName)))
+                    && f.getValue() == null
+                ) {
+                    return custom(f, ErrorType.MANDATORY.toString());
                 }
 
                 return null;
@@ -92,6 +90,29 @@ public class MandatoryValidator extends AbstractOnCreateValidator implements OnU
         if (sourceField == null) sourceField = startField.getClosestDescendantNamed(targetFieldName);
         if (sourceField == null) sourceField = startField.instance.getField(targetFieldName);
         return sourceField;
+    }
+
+    public boolean expressionPass(Expr expr, InstanceField sourceField) {
+        String fieldValue = sourceField.getValue();
+
+        if ("=".equals(expr.operation)) {
+            return (expr.value == null && fieldValue == null) // both are null
+                || (expr.value != null && expr.value.equals(fieldValue));
+
+        } else if ("!".equals(expr.operation)) {
+            return (expr.value == null && fieldValue != null) // both are null
+                || (expr.value != null && !expr.value.equals(fieldValue));
+
+        } else if (">".equals(expr.operation)) {
+            return expr.value != null && fieldValue != null
+                && Float.parseFloat(expr.value) > Float.parseFloat(fieldValue);
+
+        } else if ("<".equals(expr.operation)) {
+            return expr.value != null && fieldValue != null
+                && Float.parseFloat(expr.value) < Float.parseFloat(fieldValue);
+        }
+
+        return false;
     }
 
     protected static class Expr {
