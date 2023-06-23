@@ -13,13 +13,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static com.cultofbits.recordm.customvalidators.api.ValidationError.custom;
+import static com.cultofbits.recordm.customvalidators.api.ValidationError.standard;
 
 public class MandatoryValidator extends AbstractOnCreateValidator implements OnUpdateValidator {
 
-    //protected static final Pattern KEYWORD_PATTERN = Pattern.compile(".*\\$mandatory\\(([^\\)].*)\\).*");
     protected static final Pattern KEYWORD_PATTERN = Pattern.compile(".*\\$mandatory(\\(.*\\))?.*");
-    //    protected static final Pattern EXPRESSION_PATTERN = Pattern.compile("(.*?)(=|!|>|<|$)(.*)");
     protected static final Pattern EXPRESSION_PATTERN = Pattern.compile("(.*?)(=|!|>|<|$)(.*)");
 
     @Override
@@ -42,10 +40,10 @@ public class MandatoryValidator extends AbstractOnCreateValidator implements OnU
                     return null;
                 }
 
-                if ((expr.fieldName == null || expressionPass(expr, findTarget(f, expr.fieldName)))
-                    && f.getValue() == null
+                if ((expr.fieldName == null || expr.isTrue(findTarget(f, expr.fieldName)))
+                        && f.getValue() == null
                 ) {
-                    return custom(f, ErrorType.MANDATORY.toString());
+                    return standard(f, ErrorType.MANDATORY);
                 }
 
                 return null;
@@ -63,20 +61,20 @@ public class MandatoryValidator extends AbstractOnCreateValidator implements OnU
 
         String expression = keywordMatcher.group(1);
         if (expression == null) {
-            // The field is just mandatory
+            // The current field is just mandatory
             return new Expr();
         }
 
-        expression = expression.substring(1, expression.length() - 1).trim(); // remove the parenthesis
-        if (expression.length() == 0) {
-            // The field is just mandatory
+        String noParenthesisExpression = expression.substring(1, expression.length() - 1).trim(); // remove the parenthesis
+        if (noParenthesisExpression.length() == 0) {
+            // The current field is just mandatory
             return new Expr();
         }
 
-        Matcher expMatcher = EXPRESSION_PATTERN.matcher(expression);
+        Matcher expMatcher = EXPRESSION_PATTERN.matcher(noParenthesisExpression);
         if (!expMatcher.matches()) {
             throw new IllegalStateException("The expression pattern should have matched. {{"
-                                                + "expression:" + keywordMatcher.group(1) + "}}");
+                    + "expression:" + noParenthesisExpression + "}}");
         }
 
         return new Expr(expMatcher.group(1), expMatcher.group(2), expMatcher.group(3));
@@ -85,34 +83,11 @@ public class MandatoryValidator extends AbstractOnCreateValidator implements OnU
     /**
      * TODO remover quando o novo recordm-core estiver disponivel
      */
-    public InstanceField findTarget(InstanceField startField, String targetFieldName) {
-        InstanceField sourceField = startField.getClosestAncestorOrSiblingNamed(targetFieldName);
-        if (sourceField == null) sourceField = startField.getClosestDescendantNamed(targetFieldName);
-        if (sourceField == null) sourceField = startField.instance.getField(targetFieldName);
+    public InstanceField findTarget(InstanceField startingField, String targetFieldName) {
+        InstanceField sourceField = startingField.getClosestAncestorOrSiblingNamed(targetFieldName);
+        if (sourceField == null) sourceField = startingField.getClosestDescendantNamed(targetFieldName);
+        if (sourceField == null) sourceField = startingField.instance.getField(targetFieldName);
         return sourceField;
-    }
-
-    public boolean expressionPass(Expr expr, InstanceField sourceField) {
-        String fieldValue = sourceField.getValue();
-
-        if ("=".equals(expr.operation)) {
-            return (expr.value == null && fieldValue == null) // both are null
-                || (expr.value != null && expr.value.equals(fieldValue));
-
-        } else if ("!".equals(expr.operation)) {
-            return (expr.value == null && fieldValue != null) // both are null
-                || (expr.value != null && !expr.value.equals(fieldValue));
-
-        } else if (">".equals(expr.operation)) {
-            return expr.value != null && fieldValue != null
-                && Float.parseFloat(expr.value) > Float.parseFloat(fieldValue);
-
-        } else if ("<".equals(expr.operation)) {
-            return expr.value != null && fieldValue != null
-                && Float.parseFloat(expr.value) < Float.parseFloat(fieldValue);
-        }
-
-        return false;
     }
 
     protected static class Expr {
@@ -129,14 +104,37 @@ public class MandatoryValidator extends AbstractOnCreateValidator implements OnU
             this.value = value != null && !value.isEmpty() ? value.trim() : null;
         }
 
+        public boolean isTrue(InstanceField sourceField) {
+            String fieldValue = sourceField.getValue();
+
+            if ("=".equals(operation)) {
+                return (value == null && fieldValue == null) // both are null
+                        || (value != null && value.equals(fieldValue));
+
+            } else if ("!".equals(operation)) {
+                return (value == null && fieldValue != null) // both are null
+                        || (value != null && !value.equals(fieldValue));
+
+            } else if (">".equals(operation)) {
+                return value != null && fieldValue != null
+                        && Float.parseFloat(value) > Float.parseFloat(fieldValue);
+
+            } else if ("<".equals(operation)) {
+                return value != null && fieldValue != null
+                        && Float.parseFloat(value) < Float.parseFloat(fieldValue);
+            }
+
+            return false;
+        }
+
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             Expr expr = (Expr) o;
             return Objects.equals(fieldName, expr.fieldName)
-                && Objects.equals(operation, expr.operation)
-                && Objects.equals(value, expr.value);
+                    && Objects.equals(operation, expr.operation)
+                    && Objects.equals(value, expr.value);
         }
 
         @Override
@@ -147,10 +145,10 @@ public class MandatoryValidator extends AbstractOnCreateValidator implements OnU
         @Override
         public String toString() {
             return "Expr{" +
-                "fieldName='" + fieldName + '\'' +
-                ", operation='" + operation + '\'' +
-                ", value='" + value + '\'' +
-                '}';
+                    "fieldName='" + fieldName + '\'' +
+                    ", operation='" + operation + '\'' +
+                    ", value='" + value + '\'' +
+                    '}';
         }
     }
 }
