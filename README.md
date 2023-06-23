@@ -39,5 +39,5 @@ Fields:
 ```bash
 cd others/recordm-validators
 mvn clean package
-cp target/cob-customize-mandatory-validators-*-SNAPSHOT.jar ../../recordm/bundles/
+cp target/cob-customize-mandatory-*-SNAPSHOT.jar ../../recordm/bundles/
 ```
