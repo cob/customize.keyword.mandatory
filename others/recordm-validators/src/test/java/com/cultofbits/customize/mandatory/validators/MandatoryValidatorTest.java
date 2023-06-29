@@ -8,81 +8,40 @@ import org.testng.annotations.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static com.cultofbits.customize.mandatory.validators.MandatoryValidator.EXPRESSION_PATTERN;
-import static com.cultofbits.customize.mandatory.validators.MandatoryValidator.KEYWORD_PATTERN;
 import static org.testng.Assert.assertTrue;
 import static org.testng.AssertJUnit.assertEquals;
-import static org.testng.AssertJUnit.assertNull;
 
 public class MandatoryValidatorTest {
 
     private MandatoryValidator validator = new MandatoryValidator();
 
-    @Test
-    public void validate_keyword_pattern() {
-        expectedMatch(KEYWORD_PATTERN, "$text $help teste", false);
-
-        expectedMatch(KEYWORD_PATTERN, "$mandatory", true);
-        expectedMatch(KEYWORD_PATTERN, "$text $help $mandatory", true);
-        expectedMatch(KEYWORD_PATTERN, "$text $help $mandatory teste", true);
-        expectedMatch(KEYWORD_PATTERN, "$text $help $mandatory() teste", true);
-        expectedMatch(KEYWORD_PATTERN, "$text $help $mandatory(    ) teste", true);
-        expectedMatch(KEYWORD_PATTERN, "$text $help $mandatory(field) teste", true);
-        expectedMatch(KEYWORD_PATTERN, "$text $help $mandatory(field=) teste", true);
-        expectedMatch(KEYWORD_PATTERN, "$text $help $mandatory(field=1) teste", true);
-    }
-
-    @Test
-    public void validate_expression_pattern() {
-        expectedMatch(EXPRESSION_PATTERN, "field", true);
-        expectedMatch(EXPRESSION_PATTERN, "field=", true);
-        expectedMatch(EXPRESSION_PATTERN, "field=1", true);
-    }
-
-    private void expectedMatch(Pattern pattern, String text, boolean expectedResult) {
-        Matcher matcher = pattern.matcher(text);
-        boolean matches = matcher.matches();
-
-        // if (matches) {
-        //     IntStream.range(0, matcher.groupCount() + 1)
-        //         .forEach(i -> System.out.println("group " + i + ": " + matcher.group(i)));
-        //     System.out.println();
-        // }
-
-        assertEquals("text:" + text, expectedResult, matches);
-    }
-
 
     @Test
     public void can_build_expressions() {
-        assertNull(validator.buildExpressionIfMatching("$text"));
+        assertEquals(MandatoryValidator.buildExpression(null),
+                new MandatoryValidator.Expr());
 
-        assertEquals(validator.buildExpressionIfMatching("$text $help $mandatory(akjbdf % akjfcb) teste"),
+        assertEquals(MandatoryValidator.buildExpression(""),
+                new MandatoryValidator.Expr());
+
+        assertEquals(MandatoryValidator.buildExpression("     "),
+                new MandatoryValidator.Expr());
+
+        assertEquals(MandatoryValidator.buildExpression("akjbdf % akjfcb"),
                 new MandatoryValidator.Expr("akjbdf % akjfcb", null, null));
 
-        assertEquals(validator.buildExpressionIfMatching("$text $help $mandatory teste"),
-                new MandatoryValidator.Expr());
-
-        assertEquals(validator.buildExpressionIfMatching("$text $help $mandatory() teste"),
-                new MandatoryValidator.Expr());
-
-        assertEquals(validator.buildExpressionIfMatching("$text $help $mandatory(   )"),
-                new MandatoryValidator.Expr());
-
-        assertEquals(validator.buildExpressionIfMatching("$text $help $mandatory(field name) teste"),
+        assertEquals(MandatoryValidator.buildExpression("field name"),
                 new MandatoryValidator.Expr("field name", null, null));
 
-        assertEquals(validator.buildExpressionIfMatching("$text $help $mandatory(field name = test) teste"),
+        assertEquals(MandatoryValidator.buildExpression("field name = test"),
                 new MandatoryValidator.Expr("field name", "=", "test"));
 
-        assertEquals(validator.buildExpressionIfMatching("$text $help $mandatory(field!) teste"),
+        assertEquals(MandatoryValidator.buildExpression("field!"),
                 new MandatoryValidator.Expr("field", "!", null));
 
-        assertEquals(validator.buildExpressionIfMatching("$text $help $mandatory(field=1) teste"),
+        assertEquals(MandatoryValidator.buildExpression("field=1"),
                 new MandatoryValidator.Expr("field", "=", "1"));
     }
 
@@ -92,7 +51,7 @@ public class MandatoryValidatorTest {
                 aField("User Type", "$[Robot,User]", "Robot"),
                 aField("Address", "$mandatory(User Type=User)", null));
 
-        assertTrue(validator.validateInstance(instance).isEmpty());
+        assertTrue(validator.validateInstanceFields(instance.getFields()).isEmpty());
     }
 
     @Test
@@ -101,7 +60,7 @@ public class MandatoryValidatorTest {
                 aField("User Type", "$[Robot,User]", "Robot"),
                 aField("Address", "$mandatory(User Type=)", null));
 
-        assertTrue(validator.validateInstance(instance).isEmpty());
+        assertTrue(validator.validateInstanceFields(instance.getFields()).isEmpty());
     }
 
     @Test
@@ -110,7 +69,7 @@ public class MandatoryValidatorTest {
                 aField("User Type", "$[Robot,User]", "User"),
                 aField("Address", "$mandatory(User Type=User)", "an address"));
 
-        assertTrue(validator.validateInstance(instance).isEmpty());
+        assertTrue(validator.validateInstanceFields(instance.getFields()).isEmpty());
     }
 
     @Test
@@ -119,7 +78,7 @@ public class MandatoryValidatorTest {
                 aField("User Type", "$[Robot,User]", "User"),
                 aField("Address", "$mandatory(User Type=User)", null));
 
-        assertTrue(validator.validateInstance(instance).size() > 0);
+        assertTrue(validator.validateInstanceFields(instance.getFields()).size() > 0);
     }
 
     @Test
@@ -128,7 +87,7 @@ public class MandatoryValidatorTest {
                 aField("User Type", "$[Robot,User]", "User"),
                 aField("Address", "$mandatory(User Type!)", null));
 
-        assertTrue(validator.validateInstance(instance).size() > 0);
+        assertTrue(validator.validateInstanceFields(instance.getFields()).size() > 0);
     }
 
     @Test
@@ -136,7 +95,7 @@ public class MandatoryValidatorTest {
         Instance instance = anInstance(
                 aField("Address", "$mandatory", null));
 
-        assertTrue(validator.validateInstance(instance).size() > 0);
+        assertTrue(validator.validateInstanceFields(instance.getFields()).size() > 0);
     }
 
     @Test
@@ -145,7 +104,38 @@ public class MandatoryValidatorTest {
                 aField("Distance", "$number", "0"),
                 aField("Message", "$mandatory(Distance > 10)", null));
 
-        assertTrue(validator.validateInstance(instance).size() > 0);
+        assertTrue(validator.validateInstanceFields(instance.getFields()).isEmpty());
+    }
+
+    @Test
+    public void fail_validation_if_range_condition_is_true() {
+        Instance instance = anInstance(
+                aField("Distance", "$number", "0"),
+                aField("Message", "$mandatory(Distance < 10)", null));
+
+        assertTrue(validator.validateInstanceFields(instance.getFields()).size() > 0);
+    }
+
+    @Test
+    public void pass_validation_if_not_greater_than() {
+        Instance instance = anInstance(
+                aField("Number", "$[1,2,3,4,5]", null),
+                aField("Message", "$mandatory(Number < 2)", null));
+
+        assertTrue(validator.validateInstanceFields(instance.getFields()).isEmpty());
+    }
+
+    @Test
+    public void can_validate_instances_with_groups() {
+        InstanceField field1 = aField("User Type", "$[Robot,User]", "User");
+        InstanceField field2 = aField("Address", "$mandatory(User Type!)", null);
+
+        InstanceField groupField = aField("Group", "$group", "3");
+        groupField.children = Arrays.asList(field1, field2);
+
+        Instance instance = anInstance(groupField, field1, field2);
+
+        assertTrue(validator.validateInstanceFields(instance.getFields()).size() > 0);
     }
 
     public static Instance anInstance(InstanceField... fields) {
