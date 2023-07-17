@@ -26,7 +26,7 @@ public class MandatoryIfValidator extends AbstractOnCreateValidator implements O
 
     public static final String KEYWORD = "$mandatoryIf";
 
-    protected static final Pattern EXPRESSION_PATTERN = Pattern.compile("(.*?)(=|!|>|<|$)(.*)");
+    protected static final Pattern EXPRESSION_PATTERN = Pattern.compile("(.*?)(=|!=|>|<|$)(.*)");
 
     @SuppressWarnings("UnstableApiUsage")
     private static final LoadingCache<String, Expr> EXPRESSION_CACHE_BUILDER = CacheBuilder.newBuilder()
@@ -119,7 +119,7 @@ public class MandatoryIfValidator extends AbstractOnCreateValidator implements O
                 return (value == null && fieldValue == null) // both are null
                         || (value != null && value.equals(fieldValue));
 
-            } else if ("!".equals(operation)) {
+            } else if ("!=".equals(operation)) {
                 return (value == null && fieldValue != null) // both are null
                         || (value != null && !value.equals(fieldValue));
 

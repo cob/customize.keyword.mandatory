@@ -39,8 +39,8 @@ public class MandatoryIfValidatorTest {
         assertEquals(MandatoryIfValidator.buildExpression("field name = test"),
                      new MandatoryIfValidator.Expr("field name", "=", "test"));
 
-        assertEquals(MandatoryIfValidator.buildExpression("field!"),
-                     new MandatoryIfValidator.Expr("field", "!", null));
+        assertEquals(MandatoryIfValidator.buildExpression("field!="),
+                     new MandatoryIfValidator.Expr("field", "!=", null));
 
         assertEquals(MandatoryIfValidator.buildExpression("field=1"),
                      new MandatoryIfValidator.Expr("field", "=", "1"));
@@ -86,7 +86,7 @@ public class MandatoryIfValidatorTest {
     public void fail_validation_when_target_field_is_not_empty() {
         Instance instance = anInstance(
             aField("User Type", "$[Robot,User]", "User"),
-            aField("Address", "$mandatoryIf(User Type!)", null));
+            aField("Address", "$mandatoryIf(User Type!=)", null));
 
         assertTrue(validator.validateInstanceFields(instance.getFields()).size() > 0);
     }
@@ -129,7 +129,7 @@ public class MandatoryIfValidatorTest {
     @Test
     public void can_validate_instances_with_groups() {
         InstanceField field1 = aField("User Type", "$[Robot,User]", "User");
-        InstanceField field2 = aField("Address", "$mandatoryIf(User Type!)", null);
+        InstanceField field2 = aField("Address", "$mandatoryIf(User Type!=)", null);
 
         InstanceField groupField = aField("Group", "$group", "3");
         groupField.children = Arrays.asList(field1, field2);
@@ -142,7 +142,7 @@ public class MandatoryIfValidatorTest {
     @Test
     public void can_validate_instances_with_children() {
         InstanceField usernameField = aField("username", "$mandatoryIf(User Type=User)", null);
-        InstanceField addressField = aField("Address", "$mandatoryIf(User Type!)", null);
+        InstanceField addressField = aField("Address", "$mandatoryIf(User Type!=)", null);
 
         InstanceField parentField = aField("User Type", "$[Robot,User]", "User");
         parentField.children = Arrays.asList(usernameField, addressField);
