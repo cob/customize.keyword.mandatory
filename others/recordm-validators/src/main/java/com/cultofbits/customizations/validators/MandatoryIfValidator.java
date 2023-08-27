@@ -1,4 +1,4 @@
-package com.cultofbits.customize.mandatoryif.validators;
+package com.cultofbits.customizations.validators;
 
 import com.cultofbits.recordm.core.model.FieldKeyArguments;
 import com.cultofbits.recordm.core.model.Instance;

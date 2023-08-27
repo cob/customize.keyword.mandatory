@@ -34,6 +34,8 @@ Fields:
     
 ```
 
+For more information you can consult [this link](https://learning.cultofbits.com/docs/cob-platform/admins/managing-information/available-customizations/mandatory-fields/)
+
 ## Build
 
 ```bash

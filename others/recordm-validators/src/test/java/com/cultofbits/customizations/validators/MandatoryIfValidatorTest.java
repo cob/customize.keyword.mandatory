@@ -1,5 +1,6 @@
-package com.cultofbits.customize.mandatoryif.validators;
+package com.cultofbits.customizations.validators;
 
+import com.cultofbits.customizations.validators.MandatoryIfValidator;
 import com.cultofbits.recordm.core.model.Definition;
 import com.cultofbits.recordm.core.model.FieldDefinition;
 import com.cultofbits.recordm.core.model.Instance;
