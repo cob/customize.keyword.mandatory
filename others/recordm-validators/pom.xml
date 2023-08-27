@@ -21,7 +21,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.cultofbits.mdados</groupId>
-    <artifactId>cob-customize-mandatoryif</artifactId>
+    <artifactId>cob-customize-validator-mandatoryif</artifactId>
     <version>1.0.1-SNAPSHOT</version>
     <packaging>bundle</packaging>
 
@@ -51,7 +51,7 @@
     </dependencies>
 
     <build>
-        <finalName>cob-customize-mandatoryif</finalName>
+        <finalName>cob-customize-validator-mandatoryif</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.felix</groupId>
