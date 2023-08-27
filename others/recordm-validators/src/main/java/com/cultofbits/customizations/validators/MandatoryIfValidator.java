@@ -49,34 +49,27 @@ public class MandatoryIfValidator extends AbstractOnCreateValidator implements O
 
         for (InstanceField instanceField : instanceFields) {
             if ((!instanceField.isVisible() || instanceField.getValue() != null)
-                && instanceField.children.isEmpty()) {
+                    && instanceField.children.isEmpty()) {
                 continue;
             }
 
-            if (!instanceField.fieldDefinition.containsExtension(KEYWORD)) {
-                errors.addAll(validateInstanceFields(instanceField.children));
-                continue;
-            }
+            if (instanceField.fieldDefinition.containsExtension(KEYWORD)) {
+                FieldKeyArguments keywordArgs = instanceField.fieldDefinition.argsFor(KEYWORD);
+                String mandatoryArg = !(keywordArgs instanceof FieldKeyArguments.None) ? keywordArgs.get().get(0) : "";
 
-            if (instanceField.children.isEmpty()
-                    && (instanceField.getValue() != null || !instanceField.fieldDefinition.containsExtension(KEYWORD)))
-                continue;
+                //noinspection UnstableApiUsage
+                Expr expr = EXPRESSION_CACHE_BUILDER.getUnchecked(mandatoryArg);
 
-            FieldKeyArguments keywordArgs = instanceField.fieldDefinition.argsFor(KEYWORD);
-            String mandatoryArg = !(keywordArgs instanceof FieldKeyArguments.None) ? keywordArgs.get().get(0) : "";
-
-            //noinspection UnstableApiUsage
-            Expr expr = EXPRESSION_CACHE_BUILDER.getUnchecked(mandatoryArg);
-
-            try {
-                if (expr.fieldName == null || expr.isTrue(instanceField.getClosest(expr.fieldName))) {
-                    errors.add(standard(instanceField, ErrorType.MANDATORY));
+                try {
+                    if (expr.fieldName == null || expr.isTrue(instanceField.getClosest(expr.fieldName))) {
+                        errors.add(standard(instanceField, ErrorType.MANDATORY));
+                    }
+                } catch (Exception e) {
+                    errors.add(custom(instanceField, "Error validating mandatory expression: " + mandatoryArg));
                 }
-            } catch (Exception e) {
-                errors.add(custom(instanceField, "Error validating mandatory expression: " + mandatoryArg));
             }
 
-            if (instanceField.children.size() > 0) {
+            if (!instanceField.children.isEmpty()) {
                 errors.addAll(validateInstanceFields(instanceField.children));
             }
         }
