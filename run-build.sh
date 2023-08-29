@@ -16,6 +16,7 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+customization="mandatoryif"
 all="false"
 type=""
 
@@ -51,7 +52,7 @@ if [[ "$all" == "false" ]] && [[ "$type" == "" ]]; then
 fi
 
 if [[ "$all" == "true" ]] || [[ "$type" == "be" ]]; then
-  if [[ -f "others/recordm-validators/pom.xml" ]]; then
-    (cd others/recordm-validators && ./build_and_copy.sh)
+  if [[ -f "others/$customization-validator/pom.xml" ]]; then
+    (cd "others/$customization-validator" && ./build_and_copy.sh)
   fi
 fi

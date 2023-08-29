@@ -16,12 +16,13 @@
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+customization="mandatoryif"
 all="false"
 type=""
 
 while getopts "t:h" optname; do
   case "$optname" in
-  "t")
+  "p")
     type="$OPTARG"
     ;;
   "h")
@@ -55,7 +56,7 @@ if [[ "$all" == "true" ]] || [[ "$type" == "be" ]]; then
     (cd integrationm && mvn clean test)
   fi
 
-  if [[ -f "others/recordm-validators/pom.xml" ]]; then
-    (cd others/recordm-validators && mvn clean test)
+  if [[ -f "others/$customization-validator/pom.xml" ]]; then
+    (cd "others/$customization-validator" && ./build_and_copy.sh)
   fi
 fi
