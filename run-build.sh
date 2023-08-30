@@ -52,7 +52,7 @@ if [[ "$all" == "false" ]] && [[ "$type" == "" ]]; then
 fi
 
 if [[ "$all" == "true" ]] || [[ "$type" == "be" ]]; then
-  if [[ -f "others/$customization-validator/pom.xml" ]]; then
-    (cd "others/$customization-validator" && ./build_and_copy.sh)
-  fi
+  if [[ -f "others/validator-$customization/pom.xml" ]]; then
+      (cd "others/validator-$customization" && ./build_and_copy.sh)
+    fi
 fi

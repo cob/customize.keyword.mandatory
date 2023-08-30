@@ -56,7 +56,7 @@ if [[ "$all" == "true" ]] || [[ "$type" == "be" ]]; then
     (cd integrationm && mvn clean test)
   fi
 
-  if [[ -f "others/$customization-validator/pom.xml" ]]; then
-    (cd "others/$customization-validator" && ./build_and_copy.sh)
+  if [[ -f "others/validator-$customization/pom.xml" ]]; then
+    (cd "others/validator-$customization" && mvn clean test)
   fi
 fi
