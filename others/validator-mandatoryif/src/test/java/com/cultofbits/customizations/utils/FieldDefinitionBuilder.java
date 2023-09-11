@@ -57,18 +57,21 @@ public class FieldDefinitionBuilder {
 
     public FieldDefinitionBuilder childFields(FieldDefinition... childFields) {
         fieldDefinition.setFields(Arrays.asList(childFields));
+        Arrays.stream(childFields).forEach(f -> f.parentField = this.fieldDefinition);
         return this;
     }
 
     public FieldDefinitionBuilder childFields(FieldDefinitionBuilder... childFields) {
-        fieldDefinition.setFields(Arrays.stream(childFields).map(FieldDefinitionBuilder::build).collect(Collectors.toList()));
+        fieldDefinition.setFields(Arrays.stream(childFields)
+                .map(FieldDefinitionBuilder::build)
+                .peek(f -> f.parentField = this.fieldDefinition)
+                .collect(Collectors.toList()));
         return this;
     }
 
     public FieldDefinition build() {
         if (this.fieldDefinition.id == null) this.fieldDefinition.id = RandomUtils.nextInt();
-        if (this.fieldDefinition.name == null)
-            this.fieldDefinition.name = "field-definition-" + this.fieldDefinition.id;
+        if (this.fieldDefinition.name == null) this.fieldDefinition.name = "field-definition-" + this.fieldDefinition.id;
         return this.fieldDefinition;
     }
 }
