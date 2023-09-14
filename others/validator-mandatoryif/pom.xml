@@ -67,6 +67,8 @@
                         </Export-Package>
                         <Import-Package>
                             com.cultofbits.recordm.customvalidators.api;version="[1.0.0,2.0.0)"
+                            , com.cultofbits.recordm.core.model;version="[11.0,20)"
+                            , com.cultofbits.recordm.persistence;version="[11.0,20)"
                             , *
                         </Import-Package>
                     </instructions>
