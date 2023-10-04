@@ -26,13 +26,13 @@ public class MandatoryIfValidator extends AbstractOnCreateValidator implements O
 
     public static final String KEYWORD = "$mandatoryIf";
 
-    protected static final Pattern EXPRESSION_PATTERN = Pattern.compile("(.*?)(=|!=|>|<|$)(.*)");
+    protected static final Pattern EXPRESSION_PATTERN = Pattern.compile("(.*?)(=|!=|>=|<=|>|<|$)(.*)");
 
     @SuppressWarnings("UnstableApiUsage")
     private static final LoadingCache<String, Expr> EXPRESSION_CACHE_BUILDER = CacheBuilder.newBuilder()
-            .maximumSize(100)
-            .expireAfterWrite(24, TimeUnit.HOURS)
-            .build(CacheLoader.from(MandatoryIfValidator::buildExpression));
+        .maximumSize(100)
+        .expireAfterWrite(24, TimeUnit.HOURS)
+        .build(CacheLoader.from(MandatoryIfValidator::buildExpression));
 
     @Override
     public Collection<ValidationError> onCreate(Instance instance) {
@@ -49,7 +49,7 @@ public class MandatoryIfValidator extends AbstractOnCreateValidator implements O
 
         for (InstanceField instanceField : instanceFields) {
             if ((!instanceField.isVisible() || instanceField.getValue() != null)
-                    && instanceField.children.isEmpty()) {
+                && instanceField.children.isEmpty()) {
                 continue;
             }
 
@@ -85,7 +85,7 @@ public class MandatoryIfValidator extends AbstractOnCreateValidator implements O
         Matcher expMatcher = EXPRESSION_PATTERN.matcher(arg);
         if (!expMatcher.matches()) {
             throw new IllegalStateException("The expression pattern should have matched. {{"
-                    + "expression:" + arg + "}}");
+                                                + "expression:" + arg + "}}");
         }
 
         return new Expr(expMatcher.group(1), expMatcher.group(2), expMatcher.group(3));
@@ -110,19 +110,53 @@ public class MandatoryIfValidator extends AbstractOnCreateValidator implements O
 
             if ("=".equals(operation)) {
                 return (value == null && fieldValue == null) // both are null
-                        || (value != null && value.equals(fieldValue));
+                    || (value != null && value.equals(fieldValue));
 
             } else if ("!=".equals(operation)) {
                 return (value == null && fieldValue != null) // both are null
-                        || (value != null && !value.equals(fieldValue));
+                    || (value != null && !value.equals(fieldValue));
 
-            } else if (">".equals(operation)) {
-                return value != null && fieldValue != null
-                        && Float.parseFloat(fieldValue) > Float.parseFloat(value);
+            } else if (value != null && fieldValue != null) {
+                try {
+                    return numericComparison(Float.parseFloat(fieldValue), operation, Float.parseFloat(value));
+                } catch (NumberFormatException e) {
+                    return textComparison(fieldValue, operation, value);
+                }
+            }
+
+            return false;
+        }
+
+        private boolean numericComparison(Float fieldValue, String operation, Float exprValue) {
+            if (">".equals(operation)) {
+                return fieldValue > exprValue;
+
+            } else if (">=".equals(operation)) {
+                return fieldValue >= exprValue;
 
             } else if ("<".equals(operation)) {
-                return value != null && fieldValue != null
-                        && Float.parseFloat(fieldValue) < Float.parseFloat(value);
+                return fieldValue < exprValue;
+
+            } else if ("<=".equals(operation)) {
+                return fieldValue <= exprValue;
+            }
+
+            return false;
+        }
+
+        private boolean textComparison(String fieldValue, String operation, String exprValue) {
+
+            if (">".equals(operation)) {
+                return fieldValue.compareTo(exprValue) > 0;
+
+            } else if (">=".equals(operation)) {
+                return fieldValue.compareTo(exprValue) >= 0;
+
+            } else if ("<".equals(operation)) {
+                return fieldValue.compareTo(exprValue) < 0;
+
+            } else if ("<=".equals(operation)) {
+                return fieldValue.compareTo(exprValue) <= 0;
             }
 
             return false;
@@ -134,8 +168,8 @@ public class MandatoryIfValidator extends AbstractOnCreateValidator implements O
             if (o == null || getClass() != o.getClass()) return false;
             Expr expr = (Expr) o;
             return Objects.equals(fieldName, expr.fieldName)
-                    && Objects.equals(operation, expr.operation)
-                    && Objects.equals(value, expr.value);
+                && Objects.equals(operation, expr.operation)
+                && Objects.equals(value, expr.value);
         }
 
         @Override
@@ -146,10 +180,10 @@ public class MandatoryIfValidator extends AbstractOnCreateValidator implements O
         @Override
         public String toString() {
             return "Expr{" +
-                    "fieldName='" + fieldName + '\'' +
-                    ", operation='" + operation + '\'' +
-                    ", value='" + value + '\'' +
-                    '}';
+                "fieldName='" + fieldName + '\'' +
+                ", operation='" + operation + '\'' +
+                ", value='" + value + '\'' +
+                '}';
         }
     }
 }

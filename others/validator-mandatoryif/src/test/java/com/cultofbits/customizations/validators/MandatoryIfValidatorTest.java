@@ -1,6 +1,5 @@
 package com.cultofbits.customizations.validators;
 
-import com.cultofbits.customizations.validators.MandatoryIfValidator;
 import com.cultofbits.recordm.core.model.Definition;
 import com.cultofbits.recordm.core.model.FieldDefinition;
 import com.cultofbits.recordm.core.model.Instance;
@@ -200,6 +199,26 @@ public class MandatoryIfValidatorTest {
         instanceField.setValue(value);
 
         return instanceField;
+    }
+
+    @Test
+    public void can_compare_instances_with_strings() {
+        InstanceField stateField = aField("state", null, "1. teste");
+        InstanceField validatedField = aField("validated", "$mandatoryIf(state>=0)", null);
+
+        Instance instance = anInstance(stateField, validatedField);
+
+        assertTrue(validator.validateInstanceFields(instance.getFields()).size() > 0);
+    }
+
+    @Test
+    public void can_compare_instances_with_strings_alphabetically() {
+        InstanceField stateField = aField("state", null, "1. teste");
+        InstanceField validatedField = aField("validated", "$mandatoryIf(state<=1. teste)", null);
+
+        Instance instance = anInstance(stateField, validatedField);
+
+        assertTrue(validator.validateInstanceFields(instance.getFields()).size() > 0);
     }
 
 }
