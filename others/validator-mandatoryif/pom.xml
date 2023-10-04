@@ -22,7 +22,7 @@
 
     <groupId>com.cultofbits.mdados</groupId>
     <artifactId>cob-customize-validator-mandatoryif</artifactId>
-    <version>1.0.3-SNAPSHOT</version>
+    <version>1.1.0-SNAPSHOT</version>
     <packaging>bundle</packaging>
 
     <name>cob-customize-mandatoryif Blueprint Bundle</name>
