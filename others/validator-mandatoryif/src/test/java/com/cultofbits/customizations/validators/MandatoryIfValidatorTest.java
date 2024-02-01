@@ -176,6 +176,26 @@ public class MandatoryIfValidatorTest {
         assertTrue(validator.validateInstanceFields(instance.getFields()).isEmpty());
     }
 
+    @Test
+    public void can_compare_instances_with_strings() {
+        InstanceField stateField = aField("state", null, "1. teste");
+        InstanceField validatedField = aField("validated", "$mandatoryIf(state>=0)", null);
+
+        Instance instance = anInstance(stateField, validatedField);
+
+        assertTrue(validator.validateInstanceFields(instance.getFields()).size() > 0);
+    }
+
+    @Test
+    public void can_compare_instances_with_strings_alphabetically() {
+        InstanceField stateField = aField("state", null, "1. teste");
+        InstanceField validatedField = aField("validated", "$mandatoryIf(state<=1. teste)", null);
+
+        Instance instance = anInstance(stateField, validatedField);
+
+        assertTrue(validator.validateInstanceFields(instance.getFields()).size() > 0);
+    }
+
     public static Instance anInstance(InstanceField... fields) {
         Instance instance = new Instance();
         instance.definition = new Definition(1, "A Definition");
@@ -199,26 +219,6 @@ public class MandatoryIfValidatorTest {
         instanceField.setValue(value);
 
         return instanceField;
-    }
-
-    @Test
-    public void can_compare_instances_with_strings() {
-        InstanceField stateField = aField("state", null, "1. teste");
-        InstanceField validatedField = aField("validated", "$mandatoryIf(state>=0)", null);
-
-        Instance instance = anInstance(stateField, validatedField);
-
-        assertTrue(validator.validateInstanceFields(instance.getFields()).size() > 0);
-    }
-
-    @Test
-    public void can_compare_instances_with_strings_alphabetically() {
-        InstanceField stateField = aField("state", null, "1. teste");
-        InstanceField validatedField = aField("validated", "$mandatoryIf(state<=1. teste)", null);
-
-        Instance instance = anInstance(stateField, validatedField);
-
-        assertTrue(validator.validateInstanceFields(instance.getFields()).size() > 0);
     }
 
 }
