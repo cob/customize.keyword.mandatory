@@ -3,20 +3,20 @@ package com.cultofbits.customizations.validators;
 import com.cultofbits.recordm.core.model.FieldKeyArguments;
 import com.cultofbits.recordm.core.model.Instance;
 import com.cultofbits.recordm.core.model.InstanceField;
+import com.cultofbits.recordm.core.visibility.VisibilityConditionParser;
+import com.cultofbits.recordm.core.visibility.conditions.Fail;
+import com.cultofbits.recordm.core.visibility.conditions.VisibilityCondition;
 import com.cultofbits.recordm.customvalidators.api.AbstractOnCreateValidator;
 import com.cultofbits.recordm.customvalidators.api.ErrorType;
 import com.cultofbits.recordm.customvalidators.api.OnUpdateValidator;
 import com.cultofbits.recordm.customvalidators.api.ValidationError;
+import com.google.common.base.Strings;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static com.cultofbits.recordm.customvalidators.api.ValidationError.custom;
@@ -26,10 +26,8 @@ public class MandatoryIfValidator extends AbstractOnCreateValidator implements O
 
     public static final String KEYWORD = "$mandatoryIf";
 
-    protected static final Pattern EXPRESSION_PATTERN = Pattern.compile("(.*?)(=|!=|>=|<=|>|<|$)(.*)");
-
     @SuppressWarnings("UnstableApiUsage")
-    private static final LoadingCache<String, Expr> EXPRESSION_CACHE_BUILDER = CacheBuilder.newBuilder()
+    private static final LoadingCache<String, VisibilityCondition> EXPRESSION_CACHE_BUILDER = CacheBuilder.newBuilder()
         .maximumSize(100)
         .expireAfterWrite(24, TimeUnit.HOURS)
         .build(CacheLoader.from(MandatoryIfValidator::buildExpression));
@@ -48,20 +46,28 @@ public class MandatoryIfValidator extends AbstractOnCreateValidator implements O
         List<ValidationError> errors = new ArrayList<>();
 
         for (InstanceField instanceField : instanceFields) {
-            if ((!instanceField.isVisible() || instanceField.getValue() != null)
-                && instanceField.children.isEmpty()) {
+            if (!instanceField.isVisible()) {
                 continue;
             }
 
-            if (instanceField.fieldDefinition.containsExtension(KEYWORD)) {
+            if (instanceField.getValue() == null && instanceField.fieldDefinition.containsExtension(KEYWORD)) {
                 FieldKeyArguments keywordArgs = instanceField.fieldDefinition.argsFor(KEYWORD);
-                String mandatoryArg = !(keywordArgs instanceof FieldKeyArguments.None) ? keywordArgs.get().get(0) : "";
+
+                if(keywordArgs instanceof FieldKeyArguments.None || Strings.isNullOrEmpty(keywordArgs.get().get(0))){
+                    // we'll treat as normal mandatory
+                    if(instanceField.getValue() == null){
+                        errors.add(standard(instanceField, ErrorType.MANDATORY));
+                    }
+                    continue;
+                }
+
+                String mandatoryArg = keywordArgs.get().get(0);
 
                 //noinspection UnstableApiUsage
-                Expr expr = EXPRESSION_CACHE_BUILDER.getUnchecked(mandatoryArg);
+                VisibilityCondition vc = EXPRESSION_CACHE_BUILDER.getUnchecked(mandatoryArg);
 
                 try {
-                    if (expr.fieldName == null || expr.isTrue(instanceField.getClosest(expr.fieldName))) {
+                    if (vc.satisfiedAt(instanceField)) {
                         errors.add(standard(instanceField, ErrorType.MANDATORY));
                     }
                 } catch (Exception e) {
@@ -77,113 +83,20 @@ public class MandatoryIfValidator extends AbstractOnCreateValidator implements O
         return errors;
     }
 
-    protected static Expr buildExpression(String arg) {
+    protected static VisibilityCondition buildExpression(String arg) {
         if (arg == null || arg.trim().isEmpty()) {
-            return new Expr();
+            throw new IllegalArgumentException("cannot parse empty expression");
         }
 
-        Matcher expMatcher = EXPRESSION_PATTERN.matcher(arg);
-        if (!expMatcher.matches()) {
-            throw new IllegalStateException("The expression pattern should have matched. {{"
-                                                + "expression:" + arg + "}}");
+        VisibilityCondition visibilityCondition = VisibilityConditionParser.parse(arg);
+        if(visibilityCondition instanceof Fail){
+            throw new IllegalArgumentException(
+                "Error parsing expression{{ expression: " + arg
+                    + ", unparseable: " + ((Fail) visibilityCondition).getUnparsed() + "}}"
+            );
         }
 
-        return new Expr(expMatcher.group(1), expMatcher.group(2), expMatcher.group(3));
+        return visibilityCondition;
     }
 
-    protected static class Expr {
-        private String fieldName;
-        private String operation;
-        private String value;
-
-        public Expr() {
-        }
-
-        public Expr(String fieldName, String operation, String value) {
-            this.fieldName = fieldName.trim();
-            this.operation = operation != null && !operation.isEmpty() ? operation.trim() : null;
-            this.value = value != null && !value.isEmpty() ? value.trim() : null;
-        }
-
-        public boolean isTrue(InstanceField sourceField) {
-            String fieldValue = sourceField.getValue();
-
-            if ("=".equals(operation)) {
-                return (value == null && fieldValue == null) // both are null
-                    || (value != null && value.equals(fieldValue));
-
-            } else if ("!=".equals(operation)) {
-                return (value == null && fieldValue != null) // both are null
-                    || (value != null && !value.equals(fieldValue));
-
-            } else if (value != null && fieldValue != null) {
-                try {
-                    return numericComparison(Float.parseFloat(fieldValue), operation, Float.parseFloat(value));
-                } catch (NumberFormatException e) {
-                    return textComparison(fieldValue, operation, value);
-                }
-            }
-
-            return false;
-        }
-
-        private boolean numericComparison(Float fieldValue, String operation, Float exprValue) {
-            if (">".equals(operation)) {
-                return fieldValue > exprValue;
-
-            } else if (">=".equals(operation)) {
-                return fieldValue >= exprValue;
-
-            } else if ("<".equals(operation)) {
-                return fieldValue < exprValue;
-
-            } else if ("<=".equals(operation)) {
-                return fieldValue <= exprValue;
-            }
-
-            return false;
-        }
-
-        private boolean textComparison(String fieldValue, String operation, String exprValue) {
-
-            if (">".equals(operation)) {
-                return fieldValue.compareTo(exprValue) > 0;
-
-            } else if (">=".equals(operation)) {
-                return fieldValue.compareTo(exprValue) >= 0;
-
-            } else if ("<".equals(operation)) {
-                return fieldValue.compareTo(exprValue) < 0;
-
-            } else if ("<=".equals(operation)) {
-                return fieldValue.compareTo(exprValue) <= 0;
-            }
-
-            return false;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Expr expr = (Expr) o;
-            return Objects.equals(fieldName, expr.fieldName)
-                && Objects.equals(operation, expr.operation)
-                && Objects.equals(value, expr.value);
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(fieldName, operation, value);
-        }
-
-        @Override
-        public String toString() {
-            return "Expr{" +
-                "fieldName='" + fieldName + '\'' +
-                ", operation='" + operation + '\'' +
-                ", value='" + value + '\'' +
-                '}';
-        }
-    }
 }

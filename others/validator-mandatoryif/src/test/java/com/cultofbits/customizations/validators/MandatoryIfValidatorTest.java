@@ -4,13 +4,16 @@ import com.cultofbits.recordm.core.model.Definition;
 import com.cultofbits.recordm.core.model.FieldDefinition;
 import com.cultofbits.recordm.core.model.Instance;
 import com.cultofbits.recordm.core.model.InstanceField;
+import com.cultofbits.recordm.customvalidators.api.ValidationError;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.stream.Collectors;
 
+import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
 import static org.testng.AssertJUnit.assertEquals;
 
@@ -18,33 +21,6 @@ public class MandatoryIfValidatorTest {
 
     private final MandatoryIfValidator validator = new MandatoryIfValidator();
 
-
-    @Test
-    public void can_build_expressions() {
-        assertEquals(MandatoryIfValidator.buildExpression(null),
-                     new MandatoryIfValidator.Expr());
-
-        assertEquals(MandatoryIfValidator.buildExpression(""),
-                     new MandatoryIfValidator.Expr());
-
-        assertEquals(MandatoryIfValidator.buildExpression("     "),
-                     new MandatoryIfValidator.Expr());
-
-        assertEquals(MandatoryIfValidator.buildExpression("akjbdf % akjfcb"),
-                     new MandatoryIfValidator.Expr("akjbdf % akjfcb", null, null));
-
-        assertEquals(MandatoryIfValidator.buildExpression("field name"),
-                     new MandatoryIfValidator.Expr("field name", null, null));
-
-        assertEquals(MandatoryIfValidator.buildExpression("field name = test"),
-                     new MandatoryIfValidator.Expr("field name", "=", "test"));
-
-        assertEquals(MandatoryIfValidator.buildExpression("field!="),
-                     new MandatoryIfValidator.Expr("field", "!=", null));
-
-        assertEquals(MandatoryIfValidator.buildExpression("field=1"),
-                     new MandatoryIfValidator.Expr("field", "=", "1"));
-    }
 
     @Test
     public void pass_validation_if_condition_fails() {
@@ -194,6 +170,36 @@ public class MandatoryIfValidatorTest {
         Instance instance = anInstance(stateField, validatedField);
 
         assertTrue(validator.validateInstanceFields(instance.getFields()).size() > 0);
+    }
+
+    @Test
+    public void supports_multiple_values() {
+        InstanceField stateField = aField("state", null, "mau 1");
+        InstanceField validatedField = aField("validated", "$mandatoryIf(state = mau 1\\, mau 2)", null);
+
+        Instance instance = anInstance(stateField, validatedField);
+
+        assertTrue(validator.validateInstanceFields(instance.getFields()).size() > 0);
+    }
+
+    @Test
+    public void supports_different_from_multiple_values() {
+        InstanceField stateField = aField("state", null, "mau 3");
+        InstanceField validatedField = aField("validated", "$mandatoryIf(state != \\,mau 1\\, mau 2)", null);
+
+        Instance instance = anInstance(stateField, validatedField);
+
+        assertTrue(validator.validateInstanceFields(instance.getFields()).size() > 0);
+    }
+
+    @Test
+    public void supports_different_from_multiple_values_with_blank() {
+        InstanceField stateField = aField("state", null, "");
+        InstanceField validatedField = aField("validated", "$mandatoryIf(state != \\,mau 1\\, mau 2)", null);
+
+        Instance instance = anInstance(stateField, validatedField);
+
+        assertTrue(validator.validateInstanceFields(instance.getFields()).size() == 0);
     }
 
     public static Instance anInstance(InstanceField... fields) {
