@@ -8,6 +8,8 @@ cob-cli customize mandatoryIf
 # restart recordm
 ```
 
+**IMPORTANT**: version 2.0.0 requires RecordM >= 13.7.0
+
 ## How to use:
 
 ```
